@@ -4,16 +4,33 @@ import { useTheme } from "../providers/theme-provider";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
     <Button
       color="secondary"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="p-2 aspect-square relative"
-      aria-label="Toggle theme"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className="relative p-2 aspect-square rounded-full overflow-hidden"
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
     >
-      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark-mode:-rotate-90 dark-mode:scale-0" />
-      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark-mode:rotate-0 dark-mode:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+      
+      <span className="relative block w-[1.2rem] h-[1.2rem]">
+        <Sun 
+          className={`absolute inset-0 h-full w-full transition-all duration-500 ease-in-out
+            ${isDark 
+              ? 'rotate-90 scale-0 opacity-0' 
+              : 'rotate-0 scale-100 opacity-100'
+            }`}
+        />
+        <Moon 
+          className={`absolute inset-0 h-full w-full transition-all duration-500 ease-in-out
+            ${isDark 
+              ? 'rotate-0 scale-100 opacity-100' 
+              : '-rotate-90 scale-0 opacity-0'
+            }`}
+        />
+      </span>
     </Button>
   );
 }
