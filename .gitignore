@@ -1,0 +1,21 @@
+# dependencies
+node_modules
+
+# build outputs
+dist
+.turbo
+
+# env files
+.env
+.env.*
+!.env.example
+
+# os
+.DS_Store
+Thumbs.db
+
+# ide
+.vscode
+.idea
+*.swp
+*.swo
