@@ -1,6 +1,9 @@
+
 # Origin Flow
 
 **The Single Source of Truth for Modern Chartered Accountancy**
+
+![Preview](./packages/assets/og-image.png)
 
 Origin Flow is a decentralized, high-performance B2B SaaS platform engineered for Chartered Accountants. It transforms chaotic document handling, client communication, and payment tracking into a streamlined, Jira-inspired ticketing system. Built for speed and absolute clarity, Origin Flow bridges the gap between public client acquisition and secure, operational heavy-lifting.
 
