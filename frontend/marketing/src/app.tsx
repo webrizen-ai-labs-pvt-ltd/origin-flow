@@ -9,7 +9,7 @@ export function App() {
        <div className="flex gap-3 items-center mb-8">
          <img src="/logo.png" alt="Logo" className="size-14 invert" />
          <span className="text-5xl font-black">+</span>
-        <img src="/webrizen.png" alt="Logo" className="size-14" />
+        <img src="/webrizen.png" alt="Logo" className="size-14 grayscale invert" />
        </div>
 
         <div className="mb-6 inline-flex items-center rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-1 text-xs font-medium text-zinc-400">
