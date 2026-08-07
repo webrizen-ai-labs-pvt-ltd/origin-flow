@@ -1,5 +1,4 @@
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
-import axios from "axios";
 import { useAuthStore } from "./store/auth.store";
 import { Layout } from "./components/layout";
 import { DashboardLayout } from "./shared/dashboard-layout";

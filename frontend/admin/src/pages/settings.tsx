@@ -8,7 +8,6 @@ import {
   Phone,
   Calendar,
   Loader2,
-  Edit2,
   Key,
   Check,
 } from "lucide-react";
