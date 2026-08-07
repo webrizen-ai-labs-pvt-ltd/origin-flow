@@ -12,10 +12,14 @@
   },
   "dependencies": {
     "@origin-flow/ui": "workspace:*",
+    "@react-oauth/google": "^0.13.5",
+    "@simplewebauthn/browser": "^13.3.0",
+    "axios": "^1.19.0",
     "lucide-react": "^1.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@origin-flow/config": "workspace:*",

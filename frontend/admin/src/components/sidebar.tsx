@@ -1,23 +1,22 @@
 import { useState, createContext, useContext } from "react";
 import {
   LayoutDashboard,
-  Ticket,
-  Users,
-  FolderOpen,
   Settings,
-  CreditCard,
-  BarChart3,
   ChevronLeft,
   ChevronRight,
   LogOut,
   HelpCircle,
+  Loader2,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/auth.store";
+import axios from "axios";
 
 /* ------------------------------------------------------------------ */
 /*  Sidebar context — lets children read collapsed state              */
 /* ------------------------------------------------------------------ */
 
+// ... omitting unchanged context/links ...
 interface SidebarContextValue {
   isCollapsed: boolean;
   toggle: () => void;
@@ -42,12 +41,7 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
-  { label: "Tickets", icon: Ticket, to: "/dashboard/tickets", badge: 12 },
-  { label: "Clients", icon: Users, to: "/dashboard/clients" },
-  { label: "Documents", icon: FolderOpen, to: "/dashboard/documents" },
-  { label: "Payments", icon: CreditCard, to: "/dashboard/payments", badge: 3 },
-  { label: "Analytics", icon: BarChart3, to: "/dashboard/analytics" },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" }
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -133,8 +127,36 @@ function SidebarLink({ item, isCollapsed }: { item: NavItem; isCollapsed: boolea
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
 
   const toggle = () => setIsCollapsed((prev) => !prev);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, {
+        withCredentials: true // Ensure cookie is sent if we used httpOnly
+      });
+    } catch (e) {
+      console.error("Logout error", e);
+    } finally {
+      logout();
+      setIsLoggingOut(false);
+      navigate("/sign-in");
+    }
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
 
   return (
     <SidebarContext.Provider value={{ isCollapsed, toggle }}>
@@ -175,24 +197,32 @@ export function Sidebar() {
         {/* ── User profile ── */}
         <div className={["flex items-center border-t border-secondary px-4 py-3", isCollapsed ? "justify-center" : "gap-3"].join(" ")}>
           <div className="relative shrink-0">
-            <div className="flex size-9 items-center justify-center rounded-full bg-brand-section text-sm font-semibold text-white">
-              JD
-            </div>
-            {/* Online indicator */}
-            <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full border-2 border-primary bg-success-solid" />
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className="size-9 rounded-full object-cover" />
+            ) : (
+              <div className="flex size-9 items-center justify-center rounded-full bg-brand-section text-sm font-semibold text-white">
+                {getInitials(user?.name)}
+              </div>
+            )}
           </div>
           {!isCollapsed && (
             <div className="flex flex-1 items-center gap-2 overflow-hidden">
               <div className="flex-1 overflow-hidden">
-                <p className="truncate text-sm font-medium text-primary">John Doe</p>
-                <p className="truncate text-xs text-tertiary">john@originflow.com</p>
+                <p className="truncate text-sm font-medium text-primary">{user?.name || "Loading..."}</p>
+                <p className="truncate text-xs text-tertiary">{user?.email || "..."}</p>
               </div>
               <button
                 type="button"
-                className="shrink-0 rounded-md p-1.5 text-fg-quaternary transition-colors duration-200 hover:bg-primary_hover hover:text-fg-quaternary_hover"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="shrink-0 cursor-pointer rounded-md p-1.5 text-fg-quaternary transition-colors duration-200 hover:bg-primary_hover hover:text-fg-quaternary_hover disabled:opacity-50"
                 aria-label="Sign out"
               >
-                <LogOut className="size-4" />
+                {isLoggingOut ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <LogOut className="size-4" />
+                )}
               </button>
             </div>
           )}

@@ -1,7 +1,10 @@
 import { Button } from "@origin-flow/ui";
 import { Link } from "react-router-dom";
+import { useAuthStore } from "../store/auth.store";
 
 export function Home() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   return (
     <div className="p-6 md:p-12 flex justify-center flex-1">
           <div className="container w-full space-y-12">
@@ -26,7 +29,15 @@ export function Home() {
                 </p>
     
                 <div className="flex flex-wrap gap-4 items-center">
-                  <Link to="/sign-in"><Button className="w-min whitespace-nowrap">Sign in</Button></Link>
+                  {isAuthenticated ? (
+                    <Link to="/dashboard">
+                      <Button className="w-min whitespace-nowrap">Go to Dashboard</Button>
+                    </Link>
+                  ) : (
+                    <Link to="/sign-in">
+                      <Button className="w-min whitespace-nowrap">Sign in</Button>
+                    </Link>
+                  )}
                   <a href="https://webrizen.com/contact?=admin-origin-flow" target="_blank" rel="noopener noreferrer">
                     <Button className="w-min whitespace-nowrap" color="tertiary">
                       Contact Support

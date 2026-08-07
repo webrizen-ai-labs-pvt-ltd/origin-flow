@@ -1,4 +1,6 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import axios from "axios";
+import { useAuthStore } from "./store/auth.store";
 import { Layout } from "./components/layout";
 import { DashboardLayout } from "./shared/dashboard-layout";
 import { DashboardPage } from "./pages/dashboard";
@@ -6,6 +8,17 @@ import { Home } from "./pages/home";
 import { SignIn } from "./pages/sign-in";
 import { NotFoundPage } from "./pages/not-found";
 import { ErrorBoundaryPage } from "./pages/error";
+import { SettingsPage } from "./pages/settings";
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/sign-in" replace />;
+  }
+
+  return <>{children}</>;
+}
 
 const router = createBrowserRouter([
   {
@@ -29,12 +42,20 @@ const router = createBrowserRouter([
   },
   {
     path: "/dashboard",
-    element: <DashboardLayout />,
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
     errorElement: <ErrorBoundaryPage />,
     children: [
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: "settings",
+        element: <SettingsPage />,
       },
     ]
   }

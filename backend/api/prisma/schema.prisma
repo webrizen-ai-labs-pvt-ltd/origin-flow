@@ -1,0 +1,84 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  COMPANY
+  MANAGER
+  CLIENT
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  name        String
+  avatarUrl   String?
+  phone       String?
+  role        Role      @default(CLIENT)
+  isVerified  Boolean   @default(false)
+  googleId    String?   @unique
+  currentChallenge String?
+
+  // Hierarchy: Manager & Client belong to a Company
+  companyId    String?
+  company      User?    @relation("CompanyHierarchy", fields: [companyId], references: [id])
+  subordinates User[]   @relation("CompanyHierarchy")
+  
+  // Company Profile 1-to-1
+  companyProfile CompanyProfile?
+
+  sessions    Session[]
+  passkeys    Passkey[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model CompanyProfile {
+  id        String @id @default(uuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  companyName String
+  pan         String?
+  gstin       String?
+  address     String?
+  udin        String?
+  frn         String?
+  auditCaps   String?
+  din         String?
+  tan         String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device    String?  // Info about the device (User-Agent, IP)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Passkey {
+  id                   String   @id @default(uuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialID         Bytes    @unique
+  credentialPublicKey  Bytes
+  counter              BigInt
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  createdAt            DateTime @default(now())
+}

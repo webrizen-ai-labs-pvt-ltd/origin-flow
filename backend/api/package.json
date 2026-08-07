@@ -11,14 +11,27 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@simplewebauthn/server": "^13.3.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^4.21.2",
+    "google-auth-library": "^11.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^9.0.4"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@origin-flow/config": "workspace:*",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.15.0",
+    "@types/nodemailer": "^8.0.1",
+    "prisma": "^6.19.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }
