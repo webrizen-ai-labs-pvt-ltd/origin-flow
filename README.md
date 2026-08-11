@@ -1,229 +1,172 @@
-
 # Origin Flow
 
-**The Single Source of Truth for Modern Chartered Accountancy**
+**The Single Source of Truth for Modern Chartered Accountancy & Law Firms**
 
 ![Preview](./packages/assets/og-image.png)
 
-Origin Flow is a decentralized, high-performance B2B SaaS platform engineered for Chartered Accountants. It transforms chaotic document handling, client communication, and payment tracking into a streamlined, Jira-inspired ticketing system. Built for speed and absolute clarity, Origin Flow bridges the gap between public client acquisition and secure, operational heavy-lifting.
+Origin Flow is a decentralized, high-performance B2B SaaS platform engineered for Chartered Accountants, corporate legal firms, and their business clients. It transforms chaotic document handling, compliance filing, client communication, and payment tracking into a streamlined, Jira-inspired ticketing and firm operations platform.
 
-A Webrizen product.
-
-## 🏗 Architecture
-
-Origin Flow operates on a decentralized monorepo architecture to isolate marketing traffic from secure operational workflows:
-
-- **`domain.com` (Marketing):** Public-facing directory and client onboarding.
-- **`operate.domain.com` (Admin/Manager):** Restricted operational dashboard for workflow delegation.
-- **`client.domain.com` (Client Portal):** Secure dashboard for document uploads and status tracking.
-- **Backend API:** Node.js/Express gateway handling webhooks, cross-subdomain auth, and business logic.
-- **Infrastructure:** Supabase (PostgreSQL, Storage, Realtime) and Turborepo.
-
-## ✨ Core Features
-
-- **Centralized Ticket Timeline:** A GitHub PR-style vertical feed for every service request. Chats, file uploads, and payment statuses are chronologically locked into a single source of truth.
-- **Dynamic Service Routing:** Admins can define custom services (e.g., GST Registration) with specific required document fields for clients to fulfill.
-- **Kanban-Style Delegation:** Managers can track, assign, and update ticket statuses (Open, Awaiting Action, Under Review, Pending Payment) in real-time.
-- **BYOK Payments & Pay Later:** Integrated PhonePe gateway for direct settlements, plus a custom "Pay Later" flow that generates PDF contracts and fires them to clients via WhatsApp Cloud API.
-- **Cross-Subdomain Auth:** Seamless session management across all application frontiers using secure, HttpOnly cookies.
-
-## 🗺 Roadmap
-
-- [ ] Implement Supabase Realtime subscriptions for live chat and timeline updates.
-- [ ] Build the dynamic form generator for custom service requirements.
-- [ ] Integrate WhatsApp Cloud API for automated PDF agreement dispatch.
-- [ ] Implement granular RBAC (Role-Based Access Control) for internal manager permissions.
+A product by **Webrizen AI Labs Pvt Ltd.**
 
 ---
 
-## 🛠 Installation & Setup Guide
+## 🏗 Architecture & Workspace Matrix
 
-### Prerequisites
-
-Ensure the following tools are installed on your system before proceeding:
-
-| Tool       | Version  | Purpose                       |
-| ---------- | -------- | ----------------------------- |
-| **Node.js** | `v20+`  | JavaScript runtime            |
-| **pnpm**    | `v9.15+` | Fast, disk-efficient package manager |
-| **Git**     | `v2.40+` | Version control               |
-
-> [!NOTE]
-> This project uses `pnpm` exclusively. The `packageManager` field in the root `package.json` is pinned to `pnpm@9.15.4`. Do **not** use `npm` or `yarn`.
-
-**Install pnpm** (if not already installed):
-
-```bash
-npm install -g pnpm
-```
-
----
-
-### Repository Structure
+Origin Flow operates on a Turborepo monorepo architecture separating public marketing traffic, platform administration, firm operational workflows, and client portals into isolated applications sharing a centralized design system (`@origin-flow/ui`).
 
 ```
 origin-flow/
 ├── frontend/
-│   ├── marketing/          → @origin-flow/marketing   (React + Vite + Tailwind v4)
-│   ├── admin/              → @origin-flow/admin       (React + Vite + Tailwind v4)
-│   └── clients/            → @origin-flow/clients     (React + Vite + Tailwind v4)
+│   ├── marketing/          → @origin-flow/marketing   (Port 3000 | Public Landing & Inquiries)
+│   ├── admin/              → @origin-flow/admin       (Port 3001 | Platform Admin & Tier Management)
+│   ├── clients/            → @origin-flow/clients     (Port 3002 | Client Portal & Filing Timelines)
+│   └── management/         → @origin-flow/management  (Port 3003 | Firm Operations & Manager RBAC)
 ├── backend/
-│   └── api/                → @origin-flow/api         (Express 5 + TypeScript)
+│   └── api/                → @origin-flow/api         (Port 4000 | Express 5, Prisma, PhonePe PG, Auth)
 ├── packages/
-│   ├── ui/                 → @origin-flow/ui          (Shared React components)
-│   └── config/             → @origin-flow/config      (Shared TS & ESLint configs)
+│   ├── ui/                 → @origin-flow/ui          (Shared Untitled UI React Components & Tokens)
+│   ├── config/             → @origin-flow/config      (Shared TypeScript & ESLint configurations)
+│   └── assets/             → Static Brand Assets & Embedded Email Logos
 ├── package.json
 ├── pnpm-workspace.yaml
 └── turbo.json
 ```
 
+| Application / Service | Package Name | Port / URL | Target Role | Primary Responsibility |
+|---|---|---|---|---|
+| **Marketing Site** | `@origin-flow/marketing` | `http://localhost:3000` | Public / Prospects | Public landing page, solution showcase, and intake forms. |
+| **Admin Portal** | `@origin-flow/admin` | `http://localhost:3001` | `ADMIN` | Platform administration, user directories, global plan creation, and plan tagging. |
+| **Client Portal** | `@origin-flow/clients` | `http://localhost:3002` | `CLIENT` | Secure client document uploads, compliance checklists, and invoice payments. |
+| **Management Portal** | `@origin-flow/management` | `http://localhost:3003` | `COMPANY` & `MANAGER` | CA firm management, staff delegation, client accounts, statutory profiles, and PhonePe subscription billing. |
+| **Backend API** | `@origin-flow/api` | `http://localhost:4000` | All | Express 5, Prisma ORM (Supabase PostgreSQL), PhonePe PG engine, WebAuthn Passkeys, Nodemailer SMTP. |
+
 ---
 
-### Step 1 — Clone & Install
+## 🚀 Progress & Work Accomplished
 
+### 1. 💳 PhonePe Payment Gateway & Subscription Billing Engine
+- [x] **Prisma Subscription Schema**: Added `Plan`, `Subscription`, and `PaymentTransaction` models with enums (`BillingCycle`, `SubscriptionStatus`, `PaymentStatus`).
+- [x] **PhonePe PG Service (`phonepe.service.ts`)**:
+  - Implemented SHA256 checksum generation (`X-VERIFY`) using salt keys and indices.
+  - Integration with PhonePe `/pg/v1/pay` for standard redirect checkout (UPI, Cards, NetBanking).
+  - Implemented S2S Webhook callback handler with cryptographic signature verification.
+  - Implemented `/pg/v1/status` direct query polling for real-time status verification.
+- [x] **Automatic Return Verification & Fulfillment**:
+  - Frontend detects `?txn=...` upon PhonePe gateway return and shows a live verification screen.
+  - Auto-fulfills subscription, updates quotas, activates the plan, and locks the active plan card.
+- [x] **Branded Nodemailer Receipts**:
+  - Hostinger SMTP integration (`hello@webrizen.com`).
+  - Sends HTML payment receipts with embedded inline CID logos (`cid:originflow-logo`), transaction IDs, valid-until dates, and tax invoices.
+
+### 2. 🏢 Management Portal (`@origin-flow/management`)
+- [x] **Full Portal on Port 3003**: Cloned and tailored from the core design system for operational firms.
+- [x] **Role-Based Access Control (RBAC)**:
+  - `COMPANY` (Firm Owner): Full access to Dashboard, Team Management, Clients, Plans & Billing (`/dashboard/billing`), and Firm Compliance Settings.
+  - `MANAGER` (Staff Lead): Access to Dashboard, Assigned Clients, and Team; **Plans & Billing is hidden from sidebar and blocked via route guards**.
+- [x] **Firm Compliance & Statutory Profile**: Form to manage PAN, GSTIN, UDIN (ICAI), FRN, DIN, TAN, and registered office address.
+- [x] **Team Delegation & Client Directories**: Manage staff managers and client accounts with automated onboarding email dispatches.
+- [x] **Biometric Passkey Security**: FIDO2 / WebAuthn passwordless authentication (Touch ID, Windows Hello, Face ID).
+
+### 3. 🛡️ Admin Portal (`@origin-flow/admin`)
+- [x] **Plans & Billing Management (`/dashboard/plans`)**: CRUD interface for creating, editing, activating, and archiving subscription tiers.
+- [x] **Manual Plan Assignment**: Modal allowing admins to manually assign any plan to registered company accounts.
+- [x] **Company Plan Tagging (`/dashboard/users`)**: Displays active plan tier badges (`[Starter Tier]`, `[Growth Professional]`, `[Free Tier]`) on company rows.
+- [x] **Token Interceptor Fix**: Robust Bearer token injection from Zustand auth store.
+
+### 4. 🔑 Authentication & Single Sign-In UX
+- [x] **Single-Card Sign-In**: Clean 2-column sign-in card without requiring users to manually pick a role.
+- [x] **Automatic Role Recognition**: Reads and stores `user.role` into persistent auth storage upon Google OAuth or Passkey login.
+- [x] **Role Boundary Protections**:
+  - Admin Portal strictly enforces `ADMIN` role.
+  - Management Portal enforces `COMPANY`, `MANAGER`, or `ADMIN` roles and blocks `CLIENT` accounts with clear redirect guidance.
+
+---
+
+## 🛠 Installation & Local Setup
+
+### Prerequisites
+- **Node.js**: `v20+`
+- **pnpm**: `v9.15+` (`npm install -g pnpm`)
+- **PostgreSQL / Supabase**: Running database instance
+
+### 1. Install Dependencies
 ```bash
 git clone <your-repo-url> origin-flow
 cd origin-flow
 pnpm install
 ```
 
-This single command installs dependencies for **all 6 workspace packages** — three frontends, one backend, and two shared packages — using pnpm's workspace protocol.
-
----
-
-### Step 2 — Environment Variables
-
-Create a `.env` file inside `backend/api/` for backend configuration:
-
-```bash
-cp backend/api/.env.example backend/api/.env   # if an example file exists
-```
-
-Or create one manually:
-
+### 2. Environment Variables
+Create `.env` inside `backend/api/`:
 ```env
-# backend/api/.env
-
 PORT=4000
+DATABASE_URL="postgresql://postgres.xxx:pass@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.xxx:pass@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
 
-# Supabase (required for production)
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+# Mailer (Hostinger SMTP)
+MAIL_HOST="smtp.hostinger.com"
+MAIL_PORT="465"
+MAIL_USER="hello@webrizen.com"
+MAIL_PASS="your-smtp-password"
 
-# WhatsApp Cloud API (future integration)
-WHATSAPP_API_TOKEN=your_whatsapp_token
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+# WebAuthn & CORS
+WEBAUTHN_ORIGINS="http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:5173"
+JWT_SECRET="your-secure-jwt-secret"
+RP_NAME="Origin Flow"
+RP_ID="localhost"
 
-# PhonePe Payment Gateway (future integration)
-PHONEPE_MERCHANT_ID=your_merchant_id
-PHONEPE_SALT_KEY=your_salt_key
+# Google OAuth
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# PhonePe PG (Sandbox Defaults)
+PHONEPE_ENV="SANDBOX"
+PHONEPE_BASE_URL="https://api-preprod.phonepe.com/apis/pg-sandbox"
+PHONEPE_MERCHANT_ID="PGTESTPAYUAT86"
+PHONEPE_SALT_KEY="96434309-7796-489d-8924-ab56988a6076"
+PHONEPE_SALT_INDEX="1"
+PHONEPE_CALLBACK_URL="http://localhost:4000/api/subscriptions/phonepe/webhook"
 ```
 
-> [!IMPORTANT]
-> The `.env` file is git-ignored by default. Never commit secrets to version control.
+### 3. Seed Default Plans
+```bash
+pnpm --filter @origin-flow/api exec npx prisma db push
+pnpm --filter @origin-flow/api exec npx tsx prisma/seed.ts
+```
 
----
-
-### Step 3 — Run the Development Servers
-
-**Start all services simultaneously** from the project root:
-
+### 4. Run Development Servers
 ```bash
 pnpm dev
 ```
-
-This executes `turbo run dev`, which spins up every workspace package with a `dev` script in parallel:
-
-| Service       | Package Name            | URL                          | Dev Command            |
-| ------------- | ----------------------- | ---------------------------- | ---------------------- |
-| Marketing     | `@origin-flow/marketing` | `http://localhost:3000`      | `vite --port 3000`     |
-| Admin         | `@origin-flow/admin`     | `http://localhost:3001`      | `vite --port 3001`     |
-| Client Portal | `@origin-flow/clients`   | `http://localhost:3002`      | `vite --port 3002`     |
-| Backend API   | `@origin-flow/api`       | `http://localhost:4000`      | `tsx watch src/server.ts` |
-
-> [!TIP]
-> To run a **single** workspace in isolation, use pnpm's `--filter` flag:
->
-> ```bash
-> pnpm --filter @origin-flow/marketing dev    # Only the marketing site
-> pnpm --filter @origin-flow/api dev          # Only the backend API
-> ```
+This runs all frontends and the backend in parallel via Turborepo:
+- **Marketing**: `http://localhost:3000`
+- **Admin**: `http://localhost:3001`
+- **Clients**: `http://localhost:3002`
+- **Management**: `http://localhost:3003`
+- **API Server**: `http://localhost:4000`
 
 ---
 
-### Step 4 — Verify the Setup
+## 🧪 Available Scripts
 
-Once `pnpm dev` is running, verify that everything is working:
-
-1. **Frontend apps:** Open `http://localhost:3000`, `http://localhost:3001`, and `http://localhost:3002` in your browser. Each should render a styled page with shared UI components.
-
-2. **Backend API:** Hit the health-check endpoint:
-
-   ```bash
-   curl http://localhost:4000/api/health
-   ```
-
-   Expected response:
-
-   ```json
-   {
-     "status": "ok",
-     "service": "origin-flow-api",
-     "timestamp": "2026-07-04T06:00:00.000Z"
-   }
-   ```
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start all dev servers in parallel (Vite HMR + tsx watch) |
+| `pnpm build` | Production build across all workspace packages (topological order) |
+| `pnpm lint` | Run ESLint across all workspaces |
+| `pnpm clean` | Clean build artifacts (`dist/`, `node_modules/`) |
+| `pnpm --filter <pkg> <cmd>` | Execute a script for a specific package (e.g. `pnpm --filter @origin-flow/management build`) |
 
 ---
 
-### Available Scripts
+## 🚀 Production Deployment Reference
 
-All scripts are orchestrated via **Turborepo** from the project root:
+For instructions on acquiring production keys (PhonePe PG live merchant keys, Google Cloud Console, Hostinger SMTP, Supabase poolers) and deploying via Docker, PM2, Vercel, or Render:
 
-| Command        | Description                                                   |
-| -------------- | ------------------------------------------------------------- |
-| `pnpm dev`     | Start all dev servers in parallel (Vite HMR + tsx watch)      |
-| `pnpm build`   | Production build for all packages (topological dependency order) |
-| `pnpm lint`    | Run ESLint across all workspaces                              |
-| `pnpm clean`   | Remove `dist/` and `node_modules/` from every package         |
+👉 **Read the comprehensive deployment guide in [`backend/api/README.md`](./backend/api/README.md)**
 
 ---
 
-### Tech Stack
-
-| Layer             | Technology                                      |
-| ----------------- | ----------------------------------------------- |
-| **Monorepo**      | Turborepo + pnpm Workspaces                     |
-| **Frontend**      | React 19, Vite 6, Tailwind CSS v4, TypeScript 5 |
-| **Backend**       | Node.js, Express 5, TypeScript 5                |
-| **Hot Reload**    | Vite HMR (frontend), tsx watch (backend)        |
-| **Shared UI**     | `@origin-flow/ui` — Button, Card components     |
-| **Shared Config** | `@origin-flow/config` — Base tsconfig, ESLint   |
-| **Database**      | Supabase (PostgreSQL + Storage + Realtime)       |
-| **Payments**      | PhonePe Gateway                                 |
-| **Messaging**     | WhatsApp Cloud API                              |
-
----
-
-### Coding Conventions
-
-| Rule               | Standard                                                    |
-| ------------------ | ----------------------------------------------------------- |
-| **File naming**    | Strictly lowercase kebab-case (`user-profile.tsx`)          |
-| **Import aliases** | `@/*` maps to `./src/*` in all frontend apps                |
-| **Shared imports** | `import { Button } from "@origin-flow/ui"`                  |
-| **Language**       | TypeScript strict mode across the entire monorepo           |
-
----
-
-### 🚀 Production Deployment & API Keys Setup
-
-For detailed instructions on creating production accounts, acquiring live API keys (PhonePe PG, Google OAuth, Hostinger SMTP, Supabase), configuring Passkeys/WebAuthn, and deploying the backend via VPS/PM2/Docker/PaaS:
-
-👉 **Read the comprehensive guide in [`backend/api/README.md`](./backend/api/README.md)**
-
----
-
-### License
+## 📜 License
 
 Proprietary — © 2026 Webrizen AI Labs Pvt Ltd. All rights reserved.
