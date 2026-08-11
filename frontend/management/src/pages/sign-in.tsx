@@ -7,7 +7,7 @@ import axios from "axios";
 import { useAuthStore } from "../store/auth.store";
 import { startAuthentication } from "@simplewebauthn/browser";
 
-export function SignIn() {
+export function SignInPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [errorMsg, setErrorMsg] = useState("");
@@ -20,24 +20,29 @@ export function SignIn() {
       setErrorMsg("");
       setIsLoading(true);
       const idToken = credentialResponse.credential;
-      
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google`, {
+
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+      const response = await axios.post(`${apiUrl}/auth/google`, {
         idToken,
-        role: "ADMIN"
+        role: "COMPANY", // default for new signups on management portal
       });
 
       const { user, token } = response.data;
 
-      if (user.role !== "ADMIN") {
-        setErrorMsg(`Access restricted: This portal is strictly for Administrators. Your account has the "${user.role}" role.`);
+      // Allow COMPANY, MANAGER, or ADMIN; reject CLIENT or other roles
+      if (user.role !== "COMPANY" && user.role !== "MANAGER" && user.role !== "ADMIN") {
+        setErrorMsg(
+          `Access restricted: This portal is for Companies and Staff Managers. Your account has the "${user.role}" role. Please sign in via the Client Portal.`
+        );
         return;
       }
 
+      // Automatically store user with detected role and token
       setAuth(user, token);
       navigate("/dashboard");
     } catch (error: any) {
       if (error.response?.status === 403 || error.response?.data?.error) {
-        setErrorMsg(error.response.data.error || "Your role doesn't allow access. Please ask an admin to change your role.");
+        setErrorMsg(error.response.data.error || "Your role doesn't allow access. Please contact support.");
       } else {
         setErrorMsg("Authentication failed. Please try again.");
       }
@@ -56,13 +61,14 @@ export function SignIn() {
       setPasskeyLoading(true);
       setErrorMsg("");
 
-      const optionsRes = await axios.post(`${import.meta.env.VITE_API_URL}/auth/passkeys/auth-options`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+      const optionsRes = await axios.post(`${apiUrl}/auth/passkeys/auth-options`, {
         email: emailForPasskey,
       });
 
       const asseResp = await startAuthentication({ optionsJSON: optionsRes.data });
 
-      const verifyRes = await axios.post(`${import.meta.env.VITE_API_URL}/auth/passkeys/auth-verify`, {
+      const verifyRes = await axios.post(`${apiUrl}/auth/passkeys/auth-verify`, {
         email: emailForPasskey,
         credential: asseResp,
       });
@@ -70,8 +76,10 @@ export function SignIn() {
       if (verifyRes.data?.token) {
         const { user, token } = verifyRes.data;
 
-        if (user.role !== "ADMIN") {
-          setErrorMsg(`Access restricted: This portal is strictly for Administrators. Your account has the "${user.role}" role.`);
+        if (user.role !== "COMPANY" && user.role !== "MANAGER" && user.role !== "ADMIN") {
+          setErrorMsg(
+            `Access restricted: This portal is for Companies and Staff Managers. Your account has the "${user.role}" role. Please sign in via the Client Portal.`
+          );
           return;
         }
 
@@ -92,14 +100,17 @@ export function SignIn() {
   };
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
+    <div className="grid min-h-svh lg:grid-cols-2 bg-primary">
       {/* Left Column - Form */}
       <div className="flex flex-col gap-6 p-6 md:p-10 lg:p-12">
         {/* Header */}
         <div className="flex justify-between items-center w-full">
-          <Link to="/" className="flex items-center gap-2.5 font-semibold text-lg">
-            <img src="/logo.png" alt="Logo" className="h-7 w-7 dark:invert" />
-            <span className="tracking-tight">Origin Flow.</span>
+          <Link to="/" className="flex items-center gap-3 font-semibold text-lg">
+            <img src="/logo.png" alt="Logo" className="size-10 dark:invert" />
+            <div className="flex flex-col text-primary">
+              <span className="tracking-tight">Origin Flow.</span>
+              <p className="text-xs text-primary_on-brand/50">for operations</p>
+            </div>
           </Link>
           <ThemeToggle />
         </div>
@@ -111,7 +122,7 @@ export function SignIn() {
               Welcome back
             </h1>
             <p className="dark:text-zinc-400 text-zinc-600">
-              Sign in to access the administrative panel
+              Sign in to access firm operations and management
             </p>
           </div>
 
@@ -121,7 +132,7 @@ export function SignIn() {
                 {errorMsg}
               </div>
             )}
-            
+
             <div className="w-full flex justify-center overflow-hidden rounded-full relative">
               {isLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm rounded-full">
@@ -139,7 +150,7 @@ export function SignIn() {
                 width="384"
               />
             </div>
-            
+
             <div className="relative w-full">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
@@ -155,7 +166,7 @@ export function SignIn() {
                 placeholder="Enter your email for passkey"
                 value={emailForPasskey}
                 onChange={(e) => setEmailForPasskey(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent p-4 text-sm placeholder:text-zinc-400"
+                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent p-4 text-sm placeholder:text-zinc-400 focus:outline-none focus:border-brand-primary"
               />
               <Button
                 onClick={handlePasskeyLogin}
@@ -173,20 +184,20 @@ export function SignIn() {
           </div>
 
           <p className="text-xs dark:text-zinc-500/60 text-zinc-500/60 max-w-xs text-center leading-relaxed">
-            This is an administrative sign-in page. If you're not an administrator
-            or need assistance, please contact support.
+            Portal for chartered accountants, corporate firms, and staff managers. Client accounts should sign in via the Client Portal.
           </p>
         </div>
       </div>
 
+      {/* Right Column - Aesthetic Image */}
       <div className="relative hidden bg-zinc-100 dark:bg-zinc-900 lg:block overflow-hidden">
         <img
           src="https://i.pinimg.com/originals/95/3c/30/953c30834f6dca6ee8a392328123b7be.jpg"
-          alt="Administrative access"
+          alt="Firm operations and management"
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.8] dark:grayscale transition-all"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/30 to-transparent" />
       </div>
     </div>
-  )
+  );
 }

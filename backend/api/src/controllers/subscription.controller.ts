@@ -46,13 +46,18 @@ export const initiateCheckout = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Ensure redirectUrl has merchantTransactionId attached for seamless frontend verification
+    const targetRedirectUrl = redirectUrl
+      ? `${redirectUrl}${redirectUrl.includes("?") ? "&" : "?"}txn=${merchantTransactionId}`
+      : undefined;
+
     // Call PhonePe Payment Gateway
     const phonepeRes = await PhonePeService.initiatePayment({
       merchantTransactionId,
       merchantUserId: user.id,
       amountInPaise: plan.price,
       mobileNumber: user.phone || undefined,
-      redirectUrl,
+      redirectUrl: targetRedirectUrl,
     });
 
     if (!phonepeRes.success || !phonepeRes.redirectUrl) {
@@ -249,6 +254,11 @@ export const verifyTransactionStatus = async (req: AuthRequest, res: Response) =
       include: {
         plan: true,
         subscription: true,
+        company: {
+          include: {
+            companyProfile: true,
+          },
+        },
       },
     });
 
@@ -261,7 +271,7 @@ export const verifyTransactionStatus = async (req: AuthRequest, res: Response) =
       const statusCheck = await PhonePeService.checkStatus(merchantTransactionId);
 
       if (statusCheck.success && statusCheck.code === "PAYMENT_SUCCESS") {
-        // Trigger fulfillment if webhook was delayed
+        // Trigger fulfillment if webhook was delayed or running on localhost
         const plan = transaction.plan;
         const now = new Date();
         const durationDays =
@@ -298,14 +308,48 @@ export const verifyTransactionStatus = async (req: AuthRequest, res: Response) =
             status: PaymentStatus.SUCCESS,
             phonePeTransactionId: statusCheck.data?.transactionId,
             subscriptionId: subscription.id,
-            paymentMode: statusCheck.data?.paymentInstrument?.type,
+            paymentMode: statusCheck.data?.paymentInstrument?.type || "PhonePe PG (UPI/Cards)",
             responseCode: statusCheck.code,
             rawCallbackPayload: statusCheck.data,
           },
           include: { plan: true, subscription: true },
         });
 
+        // Dispatch Nodemailer confirmation receipt email
+        sendPaymentSuccessEmail({
+          to: transaction.company.email,
+          name: transaction.company.name || transaction.company.companyProfile?.companyName || "Organization Admin",
+          planName: plan.name,
+          amountInPaise: transaction.amount,
+          billingCycle: plan.billingCycle,
+          validUntil: currentPeriodEnd,
+          transactionId: merchantTransactionId,
+        });
+
+        console.log(`✅ [PhonePe Return] Subscription activated and receipt emailed to ${transaction.company.email}`);
+
         return res.json(updatedTxn);
+      } else if (statusCheck.code === "PAYMENT_ERROR" || statusCheck.code === "PAYMENT_DECLINED" || statusCheck.code === "TIMED_OUT") {
+        const failedTxn = await prisma.paymentTransaction.update({
+          where: { merchantTransactionId },
+          data: {
+            status: PaymentStatus.FAILED,
+            responseCode: statusCheck.code,
+            rawCallbackPayload: statusCheck.data,
+          },
+          include: { plan: true },
+        });
+
+        sendPaymentFailedEmail({
+          to: transaction.company.email,
+          name: transaction.company.name || "Organization Admin",
+          planName: transaction.plan.name,
+          amountInPaise: transaction.amount,
+          transactionId: merchantTransactionId,
+          reason: statusCheck.message || "Payment was rejected or cancelled",
+        });
+
+        return res.json(failedTxn);
       }
     }
 

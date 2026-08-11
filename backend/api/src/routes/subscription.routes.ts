@@ -18,6 +18,7 @@ router.post("/phonepe/webhook", handlePhonePeWebhook);
 // Company subscription endpoints
 router.post("/checkout", requireAuth, validateBody(checkoutPlanSchema), initiateCheckout);
 router.get("/verify/:merchantTransactionId", requireAuth, verifyTransactionStatus);
+router.get("/me", requireAuth, getMySubscription);
 router.get("/my-subscription", requireAuth, getMySubscription);
 
 // Admin subscription directory & stats
