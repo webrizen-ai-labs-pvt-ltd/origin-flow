@@ -15,15 +15,39 @@ enum Role {
   CLIENT
 }
 
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  LIFETIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  EXPIRED
+  PENDING
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
 model User {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  name        String
-  avatarUrl   String?
-  phone       String?
-  role        Role      @default(CLIENT)
-  isVerified  Boolean   @default(false)
-  googleId    String?   @unique
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String
+  avatarUrl        String?
+  phone            String?
+  role             Role      @default(CLIENT)
+  isVerified       Boolean   @default(false)
+  googleId         String?   @unique
   currentChallenge String?
 
   // Hierarchy: Manager & Client belong to a Company
@@ -34,17 +58,21 @@ model User {
   // Company Profile 1-to-1
   companyProfile CompanyProfile?
 
-  sessions    Session[]
-  passkeys    Passkey[]
+  // Subscriptions & Payments
+  subscriptions Subscription[]
+  transactions  PaymentTransaction[]
+
+  sessions Session[]
+  passkeys Passkey[]
   
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CompanyProfile {
-  id        String @id @default(uuid())
-  userId    String @unique
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   companyName String
   pan         String?
@@ -56,8 +84,85 @@ model CompanyProfile {
   din         String?
   tan         String?
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Plan {
+  id           String       @id @default(uuid())
+  name         String
+  slug         String       @unique
+  description  String?
+  price        Int          // In Paise (e.g. 299900 = ₹2,999)
+  currency     String       @default("INR")
+  billingCycle BillingCycle @default(MONTHLY)
+  
+  features     String[]
+  limits       Json?        // e.g. { maxManagers: 5, maxClients: 50, storageGb: 10 }
+  
+  isActive     Boolean      @default(true)
+  isPopular    Boolean      @default(false)
+  trialDays    Int          @default(0)
+  
+  subscriptions Subscription[]
+  transactions  PaymentTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  
+  companyId          String
+  company            User               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  planId             String
+  plan               Plan               @relation(fields: [planId], references: [id])
+  
+  status             SubscriptionStatus @default(PENDING)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  
+  assignedByAdmin    Boolean            @default(false)
+  notes              String?
+  
+  transactions       PaymentTransaction[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, status])
+}
+
+model PaymentTransaction {
+  id                    String        @id @default(uuid())
+  merchantTransactionId String        @unique
+  phonePeTransactionId  String?
+  
+  companyId             String
+  company               User          @relation(fields: [companyId], references: [id])
+  
+  planId                String
+  plan                  Plan          @relation(fields: [planId], references: [id])
+  
+  subscriptionId        String?
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id])
+  
+  amount                Int           // In Paise
+  currency              String        @default("INR")
+  status                PaymentStatus @default(INITIATED)
+  paymentMode           String?
+  
+  responseCode          String?
+  rawCallbackPayload    Json?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([merchantTransactionId])
+  @@index([companyId])
 }
 
 model Session {

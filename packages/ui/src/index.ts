@@ -36,6 +36,10 @@ export type { DatePickerProps } from "./components/base/date-picker/date-picker"
 export { Pagination, usePagination } from "./components/base/pagination/pagination";
 export type { PaginationProps } from "./components/base/pagination/pagination";
 
+// Loading indicator
+export { LoadingIndicator } from "./components/application/loading-indicator/loading-indicator";
+export type { LoadingIndicatorProps } from "./components/application/loading-indicator/loading-indicator";
+
 // Theme
 export { ThemeProvider, useTheme } from "./providers/theme-provider";
 export { ThemeToggle } from "./components/theme-toggle";

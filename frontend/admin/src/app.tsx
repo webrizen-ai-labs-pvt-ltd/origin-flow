@@ -8,6 +8,8 @@ import { SignIn } from "./pages/sign-in";
 import { NotFoundPage } from "./pages/not-found";
 import { ErrorBoundaryPage } from "./pages/error";
 import { SettingsPage } from "./pages/settings";
+import { UsersPage } from "./pages/users";
+import { PlansPage } from "./pages/plans";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -51,6 +53,14 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: "users",
+        element: <UsersPage />,
+      },
+      {
+        path: "plans",
+        element: <PlansPage />,
       },
       {
         path: "settings",

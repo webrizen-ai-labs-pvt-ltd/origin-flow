@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import {
   generateRegistrationOptions,
@@ -11,11 +12,26 @@ import { generateToken } from "../utils/jwt.js";
 import { sendWelcomeEmail } from "../services/mailer.service.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(process.env["GOOGLE_CLIENT_ID"]);
 
-const rpName = "Origin Flow";
-const rpID = "localhost"; // Ideally dynamic based on env
-const origin = process.env["WEBAUTHN_ORIGINS"]?.split(",") || ["http://localhost:3000"];
+const getRpName = () => process.env["RP_NAME"] || "Origin Flow";
+const getRpID = (req?: Request) => process.env["RP_ID"] || "localhost";
+const getOrigins = () => {
+  const envOrigins = process.env["WEBAUTHN_ORIGINS"]
+    ?.split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  return envOrigins && envOrigins.length > 0
+    ? envOrigins
+    : [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+      ];
+};
 
 export const googleLogin = async (req: Request, res: Response) => {
   try {
@@ -134,19 +150,19 @@ export const generateRegOptions = async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      include: { passkeys: true }
+      include: { passkeys: true },
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const options = await generateRegistrationOptions({
-      rpName,
-      rpID,
+      rpName: getRpName(),
+      rpID: getRpID(req),
       userID: new Uint8Array(Buffer.from(user.id)),
       userName: user.email,
       attestationType: "none",
       excludeCredentials: user.passkeys.map((pk: any) => ({
-        id: Buffer.from(pk.credentialID).toString('base64url'),
+        id: Buffer.from(pk.credentialID).toString("base64url"),
         type: "public-key",
       })),
       authenticatorSelection: {
@@ -157,7 +173,7 @@ export const generateRegOptions = async (req: AuthRequest, res: Response) => {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { currentChallenge: options.challenge }
+      data: { currentChallenge: options.challenge },
     });
 
     res.json(options);
@@ -177,8 +193,8 @@ export const verifyRegResponse = async (req: AuthRequest, res: Response) => {
     const verification = await verifyRegistrationResponse({
       response: req.body,
       expectedChallenge: user.currentChallenge,
-      expectedOrigin: origin,
-      expectedRPID: rpID,
+      expectedOrigin: getOrigins(),
+      expectedRPID: getRpID(req),
     });
 
     if (verification.verified && verification.registrationInfo) {
@@ -188,18 +204,18 @@ export const verifyRegResponse = async (req: AuthRequest, res: Response) => {
       await prisma.passkey.create({
         data: {
           userId: user.id,
-          credentialID: Buffer.from(credentialID, 'base64url'),
+          credentialID: Buffer.from(credentialID, "base64url"),
           credentialPublicKey: Buffer.from(credentialPublicKey),
           counter: BigInt(counter),
           credentialDeviceType,
-          credentialBackedUp
-        }
+          credentialBackedUp,
+        },
       });
 
       // Clear the challenge
       await prisma.user.update({
         where: { id: user.id },
-        data: { currentChallenge: null }
+        data: { currentChallenge: null },
       });
 
       return res.json({ verified: true });
@@ -218,15 +234,15 @@ export const generateAuthOptions = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { passkeys: true }
+      include: { passkeys: true },
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const options = await generateAuthenticationOptions({
-      rpID,
+      rpID: getRpID(req),
       allowCredentials: user.passkeys.map((pk) => ({
-        id: Buffer.from(pk.credentialID).toString('base64url'),
+        id: Buffer.from(pk.credentialID).toString("base64url"),
         type: "public-key",
       })),
       userVerification: "preferred",
@@ -234,7 +250,7 @@ export const generateAuthOptions = async (req: Request, res: Response) => {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { currentChallenge: options.challenge }
+      data: { currentChallenge: options.challenge },
     });
 
     res.json(options);
@@ -246,10 +262,10 @@ export const generateAuthOptions = async (req: Request, res: Response) => {
 export const verifyAuthResponse = async (req: Request, res: Response) => {
   try {
     const { email, credential } = req.body;
-    
+
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { passkeys: true }
+      include: { passkeys: true },
     });
 
     if (!user || !user.currentChallenge) {
@@ -257,7 +273,9 @@ export const verifyAuthResponse = async (req: Request, res: Response) => {
     }
 
     const passkey = user.passkeys.find(
-      (pk) => Buffer.from(pk.credentialID).toString('base64url') === credential.id || Buffer.from(pk.credentialID).toString('base64') === credential.id
+      (pk) =>
+        Buffer.from(pk.credentialID).toString("base64url") === credential.id ||
+        Buffer.from(pk.credentialID).toString("base64") === credential.id
     );
 
     if (!passkey) {
@@ -267,10 +285,10 @@ export const verifyAuthResponse = async (req: Request, res: Response) => {
     const verification = await verifyAuthenticationResponse({
       response: credential,
       expectedChallenge: user.currentChallenge,
-      expectedOrigin: origin,
-      expectedRPID: rpID,
+      expectedOrigin: getOrigins(),
+      expectedRPID: getRpID(req),
       credential: {
-        id: Buffer.from(passkey.credentialID).toString('base64url'),
+        id: Buffer.from(passkey.credentialID).toString("base64url"),
         publicKey: new Uint8Array(passkey.credentialPublicKey),
         counter: Number(passkey.counter),
       },
@@ -313,7 +331,7 @@ export const verifyAuthResponse = async (req: Request, res: Response) => {
         passkeys: user.passkeys ? user.passkeys.map((pk: any) => ({
           ...pk,
           counter: Number(pk.counter),
-          credentialID: pk.credentialID.toString('base64url'),
+          credentialID: Buffer.from(pk.credentialID).toString("base64url"),
           credentialPublicKey: undefined
         })) : []
       };

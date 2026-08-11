@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getMe,
   getUsers,
   getUserById,
   createUser,
@@ -7,23 +8,76 @@ import {
   approveUser,
   deleteUser,
   getSessions,
-  revokeSession
+  revokeSession,
 } from "../controllers/user.controller.js";
 import { requireAuth, requireRole } from "../middlewares/auth.middleware.js";
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+} from "../middlewares/validate.middleware.js";
+import {
+  createUserSchema,
+  updateUserSchema,
+  getUsersQuerySchema,
+  userIdParamSchema,
+  sessionParamSchema,
+} from "../schemas/user.schema.js";
 
 export const userRouter: Router = Router();
 
-// Only ADMIN can get all users or create users directly
-userRouter.get("/", requireAuth, requireRole(["ADMIN"]), getUsers);
-userRouter.post("/", requireAuth, requireRole(["ADMIN"]), createUser);
+// Current user profile
+userRouter.get("/me", requireAuth, getMe);
 
-userRouter.get("/:id", requireAuth, getUserById);
-userRouter.put("/:id", requireAuth, updateUser);
-userRouter.delete("/:id", requireAuth, requireRole(["ADMIN"]), deleteUser);
+// List users (ADMIN can list all with filters; COMPANY and MANAGER receive scoped team/subordinates)
+userRouter.get(
+  "/",
+  requireAuth,
+  requireRole(["ADMIN", "COMPANY", "MANAGER"]),
+  validateQuery(getUsersQuerySchema),
+  getUsers
+);
+
+// Admin-only direct user creation
+userRouter.post(
+  "/",
+  requireAuth,
+  requireRole(["ADMIN"]),
+  validateBody(createUserSchema),
+  createUser
+);
+
+// Specific user operations
+userRouter.get("/:id", requireAuth, validateParams(userIdParamSchema), getUserById);
+userRouter.put(
+  "/:id",
+  requireAuth,
+  validateParams(userIdParamSchema),
+  validateBody(updateUserSchema),
+  updateUser
+);
+userRouter.delete(
+  "/:id",
+  requireAuth,
+  requireRole(["ADMIN"]),
+  validateParams(userIdParamSchema),
+  deleteUser
+);
 
 // Admin approval
-userRouter.patch("/:id/approve", requireAuth, requireRole(["ADMIN"]), approveUser);
+userRouter.patch(
+  "/:id/approve",
+  requireAuth,
+  requireRole(["ADMIN"]),
+  validateParams(userIdParamSchema),
+  approveUser
+);
 
-// Sessions
-userRouter.get("/:id/sessions", requireAuth, getSessions);
-userRouter.delete("/:id/sessions/:sessionId", requireAuth, revokeSession);
+// Sessions management
+userRouter.get("/:id/sessions", requireAuth, validateParams(userIdParamSchema), getSessions);
+userRouter.delete(
+  "/:id/sessions/:sessionId",
+  requireAuth,
+  validateParams(sessionParamSchema),
+  revokeSession
+);

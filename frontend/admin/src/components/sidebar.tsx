@@ -1,6 +1,8 @@
 import { useState, createContext, useContext } from "react";
 import {
   LayoutDashboard,
+  Users,
+  CreditCard,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -16,7 +18,6 @@ import axios from "axios";
 /*  Sidebar context — lets children read collapsed state              */
 /* ------------------------------------------------------------------ */
 
-// ... omitting unchanged context/links ...
 interface SidebarContextValue {
   isCollapsed: boolean;
   toggle: () => void;
@@ -41,7 +42,9 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" }
+  { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
+  { label: "Users", icon: Users, to: "/dashboard/users" },
+  { label: "Plans & Billing", icon: CreditCard, to: "/dashboard/plans" },
 ];
 
 const bottomNavItems: NavItem[] = [

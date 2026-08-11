@@ -216,6 +216,14 @@ All scripts are orchestrated via **Turborepo** from the project root:
 
 ---
 
+### 🚀 Production Deployment & API Keys Setup
+
+For detailed instructions on creating production accounts, acquiring live API keys (PhonePe PG, Google OAuth, Hostinger SMTP, Supabase), configuring Passkeys/WebAuthn, and deploying the backend via VPS/PM2/Docker/PaaS:
+
+👉 **Read the comprehensive guide in [`backend/api/README.md`](./backend/api/README.md)**
+
+---
+
 ### License
 
 Proprietary — © 2026 Webrizen AI Labs Pvt Ltd. All rights reserved.
